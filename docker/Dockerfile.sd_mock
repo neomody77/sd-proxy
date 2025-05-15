@@ -1,0 +1,11 @@
+FROM python:3.11-slim
+
+# 安装依赖
+WORKDIR /app
+COPY . .
+RUN pip install --no-cache-dir -r requirements.txt
+
+RUN adduser --disabled-password --gecos '' appuser
+USER appuser
+
+CMD ["python", "sd_mock.py"]

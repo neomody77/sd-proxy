@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: always
+
+  main:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.main
+    container_name: sd-main
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379/1
+      - MAX_EXECUTION_TIME=15
+    restart: always
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    container_name: sd-worker
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379/1
+      - MAX_EXECUTION_TIME=15
+    restart: always
+
+  sd_mock:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.sd_mock
+    container_name: sd-mock
+    ports:
+      - "8188:8188"
+    restart: always
