@@ -1,143 +1,159 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8"/>
-    <title>SD 任务演示</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <meta charset="UTF-8"/>
+  <title>SD 任务演示</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
 <div id="app" class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded shadow">
-    <h2 class="text-2xl font-bold mb-4">🧠 SD 任务演示</h2>
+  <h2 class="text-2xl font-bold mb-4">🧠 SD 任务演示</h2>
 
-    <div class="flex border-b mb-4">
-        <button class="px-4 py-2 text-sm font-medium"
-                :class="mode === 'sample' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'"
-                @click="mode = 'sample'">🧪 Prompt 模式
-        </button>
-        <button class="px-4 py-2 text-sm font-medium ml-4"
-                :class="mode === 'story' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'"
-                @click="mode = 'story'">📖 Story 模式
-        </button>
-    </div>
+  <div class="flex border-b mb-4">
+    <button class="px-4 py-2 text-sm font-medium"
+            :class="mode === 'sample' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'"
+            @click="mode = 'sample'">🧪 Prompt 模式</button>
+    <button class="px-4 py-2 text-sm font-medium ml-4"
+            :class="mode === 'story' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'"
+            @click="mode = 'story'">📖 Story 模式</button>
+  </div>
 
-    <div class="space-y-3 mb-4">
-        <template v-if="mode === 'sample'">
-            <textarea v-model="prompt" placeholder="输入 prompt..." class="w-full border p-2 rounded"
-                      rows="4"></textarea>
-        </template>
-        <template v-else>
-            <textarea v-model="role_text" placeholder="role_text" class="w-full border p-2 rounded" rows="2"></textarea>
-            <textarea v-model="scene_text" placeholder="scene_text" class="w-full border p-2 rounded"
-                      rows="2"></textarea>
-            <textarea v-model="pos_text" placeholder="pos_text" class="w-full border p-2 rounded" rows="2"></textarea>
-            <textarea v-model="neg_text" placeholder="neg_text" class="w-full border p-2 rounded" rows="2"></textarea>
-        </template>
-    </div>
+  <div class="space-y-3 mb-4">
+    <template v-if="mode === 'sample'">
+      <textarea v-model="prompt" placeholder="输入 prompt..." class="w-full border p-2 rounded" rows="4"></textarea>
+    </template>
+    <template v-else>
+      <textarea v-model="role_text" placeholder="role_text" class="w-full border p-2 rounded" rows="4"></textarea>
+      <textarea v-model="scene_text" placeholder="scene_text" class="w-full border p-2 rounded" rows="4"></textarea>
+      <textarea v-model="pos_text" placeholder="pos_text" class="w-full border p-2 rounded" rows="2"></textarea>
+      <textarea v-model="neg_text" placeholder="neg_text" class="w-full border p-2 rounded" rows="4"></textarea>
+    </template>
+  </div>
 
+  <div class="flex items-center space-x-4">
     <button @click="submitTask" :disabled="isLoading"
             class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50">
-        提交任务
+      提交任务
     </button>
+    <button v-if="isLoading && currentTaskId" @click="cancelTask"
+            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+      取消任务
+    </button>
+  </div>
 
-    <!-- ✅ 图片结果展示（上方） -->
-    <div v-if="images.length > 0" class="mt-6">
-        <h3 class="text-lg font-semibold mb-2">图片结果：</h3>
-        <div class="grid grid-cols-2 gap-4">
-            <img v-for="(img, idx) in images" :key="idx" :src="img" class="rounded border"/>
-        </div>
+  <div v-if="images.length > 0" class="mt-6">
+    <h3 class="text-lg font-semibold mb-2">图片结果：</h3>
+    <div class="grid grid-cols-2 gap-4">
+      <img v-for="(img, idx) in images" :key="idx" :src="img" class="rounded border"/>
     </div>
+  </div>
 
-    <!-- ✅ 响应 JSON 折叠 -->
-    <div class="mt-6">
-        <h3 class="text-lg font-semibold mb-2">响应结果：</h3>
-        <div v-if="isLoading" class="text-orange-500 font-semibold mb-2">⏳ 正在生成中...</div>
-        <pre :class="['bg-gray-100 p-4 rounded text-sm whitespace-pre-wrap transition-all', collapsed ? 'max-h-24 overflow-hidden' : '']">{{ response
-            }}</pre>
-        <button v-if="response.length > 0"
-                @click="collapsed = !collapsed"
-                class="text-sm text-blue-600 mt-2 hover:underline">
-            {{ collapsed ? '展开全部 ↓' : '收起 ↑' }}
-        </button>
-    </div>
+  <div class="mt-6">
+    <h3 class="text-lg font-semibold mb-2">响应结果：</h3>
+    <div v-if="isLoading" class="text-orange-500 font-semibold mb-2">⏳ 正在生成中...</div>
+    <pre :class="['bg-gray-100 p-4 rounded text-sm whitespace-pre-wrap transition-all', collapsed ? 'max-h-24 overflow-hidden' : '']">{{ response }}</pre>
+    <button v-if="response.length > 0"
+            @click="collapsed = !collapsed"
+            class="text-sm text-blue-600 mt-2 hover:underline">
+      {{ collapsed ? '展开全部 ↓' : '收起 ↑' }}
+    </button>
+  </div>
 </div>
 
 <script>
-    const {createApp, ref} = Vue;
-    const baseUrl = ''; // ✅ 留空即可
+  const { createApp, ref } = Vue;
+  const baseUrl = ''; // ✅ 留空即可
 
-    createApp({
-        setup() {
-            const mode = ref('sample');
-            const prompt = ref('');
-            const role_text = ref('');
-            const scene_text = ref('');
-            const pos_text = ref('');
-            const neg_text = ref('');
-            const response = ref('');
-            const isLoading = ref(false);
-            const images = ref([]);
-            const collapsed = ref(true);
+  createApp({
+    setup() {
+      const mode = ref('sample');
+      const prompt = ref("A robot standing on the moon");
+      const role_text = ref("[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n[Lecun] a man img,wearing a suit,black hair.");
+      const scene_text = ref("[Taylor] wake up in the bed ;\n[Taylor] have breakfast by the window;\n[Lecun] driving a car;\n[Lecun] is working.");
+      const pos_text = ref(",best");
+      const neg_text = ref("bad anatomy, bad hands, missing fingers, extra fingers,three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs");
+      const response = ref('');
+      const isLoading = ref(false);
+      const images = ref([]);
+      const collapsed = ref(false);
+      const currentTaskId = ref(null);
+      const cancelRequested = ref(false);
 
-            const submitTask = async () => {
-                isLoading.value = true;
-                response.value = '';
-                images.value = [];
-                collapsed.value = true;
+      const submitTask = async () => {
+        isLoading.value = true;
+        response.value = '';
+        images.value = [];
+        collapsed.value = true;
+        cancelRequested.value = false;
 
-                let payload = {};
-                if (mode.value === 'sample') {
-                    payload = {prompt: prompt.value};
-                } else {
-                    payload = {
-                        role_text: role_text.value,
-                        scene_text: scene_text.value,
-                        pos_text: pos_text.value,
-                        neg_text: neg_text.value
-                    };
-                }
-
-                try {
-                    const res = await axios.post(`${baseUrl}/tasks`, payload);
-                    const taskId = res.data.task_id;
-                    response.value = `任务已提交，ID：${taskId}`;
-                    await pollTaskStatus(taskId);
-                } catch (error) {
-                    response.value = `提交失败：${error}`;
-                } finally {
-                    isLoading.value = false;
-                }
-            };
-
-            const pollTaskStatus = async (taskId) => {
-                for (let i = 0; i < 60; i++) {
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    try {
-                        const res = await axios.get(`${baseUrl}/tasks/${taskId}`);
-                        const data = res.data;
-                        data.prompt = 'too long to show';
-                        response.value = JSON.stringify(data, null, 2);
-                        if (Array.isArray(data.result)) {
-                            images.value = data.result;
-                        }
-                        if (data.status === 'done' || data.status === 'failed') return;
-                    } catch (e) {
-                        response.value = `查询状态失败：${e}`;
-                        return;
-                    }
-                }
-                response.value = '任务超时未完成。';
-            };
-
-            return {
-                mode,
-                prompt, role_text, scene_text, pos_text, neg_text,
-                response, isLoading, images, collapsed,
-                submitTask
-            };
+        let payload = {};
+        if (mode.value === 'sample') {
+          payload = { prompt: prompt.value };
+        } else {
+          payload = {
+            role_text: role_text.value,
+            scene_text: scene_text.value,
+            pos_text: pos_text.value,
+            neg_text: neg_text.value
+          };
         }
-    }).mount('#app');
+
+        try {
+          const res = await axios.post(`${baseUrl}/tasks`, payload);
+          currentTaskId.value = res.data.task_id;
+          response.value = `任务已提交，ID：${currentTaskId.value}`;
+          await pollTaskStatus(currentTaskId.value);
+        } catch (error) {
+          response.value = `提交失败：${error}`;
+        } finally {
+          isLoading.value = false;
+        }
+      };
+
+      const pollTaskStatus = async (taskId) => {
+        for (let i = 0; i < 60; i++) {
+          if (cancelRequested.value) return;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          try {
+            const res = await axios.get(`${baseUrl}/tasks/${taskId}`);
+            const data = res.data;
+            data.prompt = 'too long to show';
+            response.value = JSON.stringify(data, null, 2);
+            if (Array.isArray(data.result)) {
+              images.value = data.result;
+            }
+            if (['done', 'failed', 'cancelled'].includes(data.status)) return;
+          } catch (e) {
+            response.value = `查询状态失败：${e}`;
+            return;
+          }
+        }
+        response.value = '任务超时未完成。';
+      };
+
+      const cancelTask = async () => {
+        if (!currentTaskId.value) return;
+        cancelRequested.value = true;
+        try {
+          const res = await axios.delete(`${baseUrl}/tasks/${currentTaskId.value}`);
+          response.value = `任务已取消：${JSON.stringify(res.data, null, 2)}`;
+        } catch (e) {
+          response.value = `取消失败：${e}`;
+        } finally {
+          isLoading.value = false;
+        }
+      };
+
+      return {
+        mode,
+        prompt, role_text, scene_text, pos_text, neg_text,
+        response, isLoading, images, collapsed,
+        submitTask, cancelTask, currentTaskId
+      };
+    }
+  }).mount('#app');
 </script>
 </body>
 </html>

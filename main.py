@@ -6,6 +6,7 @@ from uuid import uuid4
 import redis.asyncio as redis
 import uvicorn
 from fastapi import FastAPI, HTTPException, status
+from starlette.responses import RedirectResponse
 from starlette.staticfiles import StaticFiles
 
 from config import settings, QUEUE_RUNNING, QUEUE_CANCEL, QUEUE_PENDING
@@ -25,7 +26,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
 
 
 @app.post("/tasks")
@@ -85,6 +85,13 @@ async def delete_task(task_id: str):
 
     logger.info(f"✅ Deleted task {task_id}")
     return {"status": "deleted"}
+
+
+# 根路径访问重定向到 index.html
+@app.get("/", include_in_schema=False)
+@app.get("", include_in_schema=False)
+async def redirect_root():
+    return RedirectResponse(url="/static/index.html")
 
 
 if __name__ == "__main__":
