@@ -19,7 +19,7 @@ services:
       - redis
     environment:
       - REDIS_URL=redis://redis:6379/1
-      - MAX_EXECUTION_TIME=15
+      - MAX_EXECUTION_TIME=150
     restart: always
 
   worker:
@@ -31,7 +31,7 @@ services:
       - redis
     environment:
       - REDIS_URL=redis://redis:6379/1
-      - MAX_EXECUTION_TIME=15
+      - MAX_EXECUTION_TIME=150
     restart: always
 
   sd_mock:

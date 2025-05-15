@@ -6,6 +6,7 @@ from uuid import uuid4
 import redis.asyncio as redis
 import uvicorn
 from fastapi import FastAPI, HTTPException, status
+from starlette.staticfiles import StaticFiles
 
 from config import settings, QUEUE_RUNNING, QUEUE_CANCEL, QUEUE_PENDING
 from logger import setup_logger
@@ -23,6 +24,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 
