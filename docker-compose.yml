@@ -12,7 +12,6 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.main
-    container_name: sd-main
     ports:
       - "8000:8000"
     depends_on:
@@ -26,7 +25,17 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.worker
-    container_name: sd-worker
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379/1
+      - MAX_EXECUTION_TIME=150
+    restart: always
+
+  failed_watcher:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.failed_watcher
     depends_on:
       - redis
     environment:
@@ -38,7 +47,6 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.sd_mock
-    container_name: sd-mock
     ports:
       - "8188:8188"
     restart: always
